@@ -643,19 +643,19 @@ def section_deliverables(styles, helpers):
         _p(helpers, styles, "Notebooks (with exported PDFs)", "h2"),
         *_bullets(helpers, styles, [
             "<code>notebooks/01_eda.ipynb</code> — "
-            "<i>Exploratory_Data_Analysis.pdf</i>",
+            "<code>reports/01_Exploratory_Data_Analysis.pdf</code>",
             "<code>notebooks/02_preprocessing.ipynb</code> — "
-            "<i>Preprocessing.pdf</i>",
+            "<code>reports/02_Preprocessing.pdf</code>",
             "<code>notebooks/03_model_training.ipynb</code> — "
-            "<i>Model_Training.pdf</i>",
+            "<code>reports/03_Model_Training.pdf</code>",
             "<code>notebooks/04_inference.ipynb</code> — "
-            "<i>Inference.pdf</i>",
+            "<code>reports/04_Inference.pdf</code>",
             "<code>notebooks/05_containerisation.ipynb</code> — "
-            "<i>Containerisation.pdf</i>",
+            "<code>reports/05_Containerisation.pdf</code>",
             "<code>notebooks/06_kubernetes.ipynb</code> — "
-            "<i>Kubernetes.pdf</i>",
+            "<code>reports/06_Kubernetes.pdf</code>",
             "<code>notebooks/07_monitoring.ipynb</code> — "
-            "<i>Monitoring.pdf</i>",
+            "<code>reports/07_Monitoring.pdf</code>",
         ]),
         _p(helpers, styles, "Source code", "h2"),
         *_bullets(helpers, styles, [
