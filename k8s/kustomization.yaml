@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: heart-disease
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - hpa.yaml
+  # Uncomment after enabling an ingress controller:
+  # - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: mlops-assignment-1
+  app.kubernetes.io/managed-by: kustomize
+
+images:
+  - name: heart-disease-api
+    newTag: latest

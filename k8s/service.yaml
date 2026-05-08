@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: heart-disease-api
+  namespace: heart-disease
+  labels:
+    app: heart-disease-api
+spec:
+  # LoadBalancer works on Docker Desktop / cloud (GKE/EKS/AKS).
+  # For Minikube use `minikube tunnel` or change to NodePort.
+  type: LoadBalancer
+  selector:
+    app: heart-disease-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+---
+# ClusterIP companion service (used by Prometheus to scrape /metrics
+# inside the cluster regardless of LB exposure).
+apiVersion: v1
+kind: Service
+metadata:
+  name: heart-disease-api-internal
+  namespace: heart-disease
+  labels:
+    app: heart-disease-api
+spec:
+  type: ClusterIP
+  selector:
+    app: heart-disease-api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
