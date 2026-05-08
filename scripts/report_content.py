@@ -631,67 +631,84 @@ def section_production_deployment_intro(styles, helpers):
 
 
 # --------------------------------------- deliverables index
+REPO_URL = "https://github.com/2025cs05050-rgb/heart-disease-mlops"
+BLOB = f"{REPO_URL}/blob/main"
+TREE = f"{REPO_URL}/tree/main"
+
+
+def _link(url: str, label: str | None = None) -> str:
+    """ReportLab-friendly hyperlink. Renders blue underlined in PDF; the
+    docx parser strips the wrapper and keeps the label visible (also
+    coloured blue via the ``link`` flag)."""
+    return (f"<link href=\"{url}\"><font color=\"#1f4e79\">"
+            f"<u>{label or url}</u></font></link>")
+
+
+def _nb(stem: str, pdf: str) -> str:
+    """Build one notebook deliverable bullet with two clickable links."""
+    return (f"<code>{stem}</code> &nbsp;·&nbsp; "
+            f"notebook: {_link(f'{BLOB}/notebooks/{stem}')} &nbsp;·&nbsp; "
+            f"PDF: {_link(f'{BLOB}/reports/{pdf}')}")
+
+
 def section_deliverables(styles, helpers):
     return [
         _p(helpers, styles, "Appendix D — Deliverables Index", "h1"),
         _p(helpers, styles,
            "All artefacts referenced in this report are tracked in the "
-           "public GitHub repository:"),
+           "public GitHub repository. Every entry below carries a "
+           "clickable link to the exact file on the <i>main</i> branch."),
         _p(helpers, styles,
-           "<b>Repository:</b> "
-           "https://github.com/2025cs05050-rgb/heart-disease-mlops"),
+           f"<b>Repository:</b> {_link(REPO_URL)}"),
         _p(helpers, styles, "Notebooks (with exported PDFs)", "h2"),
         *_bullets(helpers, styles, [
-            "<code>notebooks/01_eda.ipynb</code> — "
-            "<code>reports/01_Exploratory_Data_Analysis.pdf</code>",
-            "<code>notebooks/02_preprocessing.ipynb</code> — "
-            "<code>reports/02_Preprocessing.pdf</code>",
-            "<code>notebooks/03_model_training.ipynb</code> — "
-            "<code>reports/03_Model_Training.pdf</code>",
-            "<code>notebooks/04_inference.ipynb</code> — "
-            "<code>reports/04_Inference.pdf</code>",
-            "<code>notebooks/05_containerisation.ipynb</code> — "
-            "<code>reports/05_Containerisation.pdf</code>",
-            "<code>notebooks/06_kubernetes.ipynb</code> — "
-            "<code>reports/06_Kubernetes.pdf</code>",
-            "<code>notebooks/07_monitoring.ipynb</code> — "
-            "<code>reports/07_Monitoring.pdf</code>",
+            _nb("01_eda.ipynb", "01_Exploratory_Data_Analysis.pdf"),
+            _nb("02_preprocessing.ipynb", "02_Preprocessing.pdf"),
+            _nb("03_model_training.ipynb", "03_Model_Training.pdf"),
+            _nb("04_inference.ipynb", "04_Inference.pdf"),
+            _nb("05_containerisation.ipynb", "05_Containerisation.pdf"),
+            _nb("06_kubernetes.ipynb", "06_Kubernetes.pdf"),
+            _nb("07_monitoring.ipynb", "07_Monitoring.pdf"),
         ]),
         _p(helpers, styles, "Source code", "h2"),
         *_bullets(helpers, styles, [
-            "<code>src/data_loader.py</code>, "
-            "<code>src/preprocess.py</code>, "
-            "<code>src/train.py</code>, "
-            "<code>src/evaluate.py</code>, "
-            "<code>src/predict.py</code> — pipeline modules.",
-            "<code>api/</code> — FastAPI service "
+            f"{_link(f'{BLOB}/src/data_loader.py', 'src/data_loader.py')}, "
+            f"{_link(f'{BLOB}/src/preprocess.py', 'src/preprocess.py')}, "
+            f"{_link(f'{BLOB}/src/train.py', 'src/train.py')}, "
+            f"{_link(f'{BLOB}/src/evaluate.py', 'src/evaluate.py')}, "
+            f"{_link(f'{BLOB}/src/predict.py', 'src/predict.py')} — "
+            "pipeline modules.",
+            f"{_link(f'{TREE}/api', 'api/')} — FastAPI service "
             "(app, schemas, logging, metrics).",
-            "<code>tests/</code> — pytest suite (35 tests).",
+            f"{_link(f'{TREE}/tests', 'tests/')} — pytest suite "
+            "(35 tests).",
         ]),
         _p(helpers, styles, "Infrastructure", "h2"),
         *_bullets(helpers, styles, [
-            "<code>docker/Dockerfile</code> — multi-stage build that "
-            "bakes the trained model.",
-            "<code>docker/Dockerfile.slim</code> — runtime-only variant "
-            "used for low-IO sandboxes (Killercoda).",
-            "<code>k8s/</code> — namespace, configmap, deployment, "
-            "service, ingress, HPA, kustomization.",
-            "<code>monitoring/</code> — docker-compose, Prometheus "
-            "config, Grafana dashboard JSON.",
-            "<code>.github/workflows/ci.yml</code> — lint, test, "
-            "smoke-train and Docker-build jobs.",
+            f"{_link(f'{BLOB}/docker/Dockerfile', 'docker/Dockerfile')} — "
+            "multi-stage build that bakes the trained model.",
+            f"{_link(f'{BLOB}/docker/Dockerfile.slim', 'docker/Dockerfile.slim')} — "
+            "runtime-only variant used for low-IO sandboxes (Killercoda).",
+            f"{_link(f'{TREE}/k8s', 'k8s/')} — namespace, configmap, "
+            "deployment, service, ingress, HPA, kustomization.",
+            f"{_link(f'{TREE}/monitoring', 'monitoring/')} — "
+            "docker-compose, Prometheus config, Grafana dashboard JSON.",
+            f"{_link(f'{BLOB}/.github/workflows/ci.yml', '.github/workflows/ci.yml')} — "
+            "lint, test, smoke-train and Docker-build jobs.",
         ]),
         _p(helpers, styles, "Reports", "h2"),
         *_bullets(helpers, styles, [
-            "<code>reports/MLOps_Assignment1_Report.pdf</code> — "
+            f"{_link(f'{BLOB}/reports/MLOps_Assignment1_Report.pdf', 'reports/MLOps_Assignment1_Report.pdf')} — "
             "this consolidated report (PDF).",
-            "<code>reports/MLOps_Assignment1_Report.docx</code> — "
+            f"{_link(f'{BLOB}/reports/MLOps_Assignment1_Report.docx', 'reports/MLOps_Assignment1_Report.docx')} — "
             "Word version of this report.",
-            "<code>reports/metrics.json</code> — CV + test metrics for "
-            "both candidate models, consumed by the report generators.",
-            "<code>reports/figures/</code> — confusion matrix, ROC "
-            "curve, MLflow / Swagger / Grafana renderings.",
-            "<code>screenshots/</code> — seven Killercoda deployment "
-            "screenshots embedded as Figures 6-12.",
+            f"{_link(f'{BLOB}/reports/metrics.json', 'reports/metrics.json')} — "
+            "CV + test metrics for both candidate models, consumed by "
+            "the report generators.",
+            f"{_link(f'{TREE}/reports/figures', 'reports/figures/')} — "
+            "confusion matrix, ROC curve, MLflow / Swagger / Grafana "
+            "renderings.",
+            f"{_link(f'{TREE}/screenshots', 'screenshots/')} — seven "
+            "Killercoda deployment screenshots embedded as Figures 6-12.",
         ]),
     ]

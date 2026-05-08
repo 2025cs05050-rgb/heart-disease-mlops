@@ -61,7 +61,9 @@ MONO_FONT = "Consolas"
 BODY_FONT = "Calibri"
 
 # --------------------------------------------------------------------- markup
-TAG_RE = re.compile(r"<(/?)(b|i|code|br\s*/?|font[^>]*)>", re.IGNORECASE)
+TAG_RE = re.compile(
+    r"<(/?)(b|i|u|code|br\s*/?|font[^>]*|link[^>]*)>", re.IGNORECASE)
+LINK_HREF_RE = re.compile(r"href\s*=\s*\"([^\"]+)\"", re.IGNORECASE)
 
 
 def _decode(text: str) -> str:
@@ -95,7 +97,8 @@ def parse_inline(text: str) -> list[tuple[str, dict]]:
         if m.start() > pos:
             runs.append((text[pos:m.start()], attrs_now()))
         closing = m.group(1) == "/"
-        tag = m.group(2).lower()
+        raw = m.group(2)
+        tag = raw.lower().split()[0]
         if tag.startswith("br"):
             runs.append(("\n", attrs_now()))
         elif closing:
@@ -106,12 +109,62 @@ def parse_inline(text: str) -> list[tuple[str, dict]]:
                 stack.append({"bold": True})
             elif tag == "i":
                 stack.append({"italic": True})
+            elif tag == "u":
+                stack.append({"underline": True})
             elif tag == "code":
                 stack.append({"mono": True})
             elif tag.startswith("font"):
-                stack.append({"mono": True})
+                # font tags inside link wrappers carry colour; treat the
+                # whole link as a styled (blue, underlined) hyperlink and
+                # avoid forcing the mono font on it.
+                if any(s.get("link") for s in stack):
+                    stack.append({})
+                else:
+                    stack.append({"mono": True})
+            elif tag.startswith("link"):
+                href_m = LINK_HREF_RE.search(raw)
+                stack.append({"link": href_m.group(1) if href_m else ""})
         pos = m.end()
     return runs
+
+
+LINK_BLUE = RGBColor(0x1F, 0x4E, 0x79)
+
+
+def _add_hyperlink(paragraph, url: str, text: str, *, mono: bool = False):
+    """Insert a clickable Word hyperlink into ``paragraph``."""
+    part = paragraph.part
+    r_id = part.relate_to(
+        url,
+        "http://schemas.openxmlformats.org/officeDocument/2006/"
+        "relationships/hyperlink",
+        is_external=True,
+    )
+    hyperlink = OxmlElement("w:hyperlink")
+    hyperlink.set(qn("r:id"), r_id)
+    new_run = OxmlElement("w:r")
+    rPr = OxmlElement("w:rPr")
+    rFonts = OxmlElement("w:rFonts")
+    font_name = MONO_FONT if mono else BODY_FONT
+    rFonts.set(qn("w:ascii"), font_name)
+    rFonts.set(qn("w:hAnsi"), font_name)
+    rPr.append(rFonts)
+    color = OxmlElement("w:color")
+    color.set(qn("w:val"), "1F4E79")
+    rPr.append(color)
+    underline = OxmlElement("w:u")
+    underline.set(qn("w:val"), "single")
+    rPr.append(underline)
+    sz = OxmlElement("w:sz")
+    sz.set(qn("w:val"), "18" if mono else "21")
+    rPr.append(sz)
+    new_run.append(rPr)
+    t = OxmlElement("w:t")
+    t.text = text
+    t.set(qn("xml:space"), "preserve")
+    new_run.append(t)
+    hyperlink.append(new_run)
+    paragraph._p.append(hyperlink)
 
 
 def add_runs(paragraph, text: str, base: dict | None = None) -> None:
@@ -120,6 +173,12 @@ def add_runs(paragraph, text: str, base: dict | None = None) -> None:
     for chunk, attrs in parse_inline(text):
         merged = {**base, **attrs}
         if not chunk:
+            continue
+        # Hyperlinks: render as a real Word ``w:hyperlink`` element so
+        # readers can click through to GitHub.
+        if merged.get("link"):
+            _add_hyperlink(paragraph, merged["link"], chunk,
+                           mono=merged.get("mono", False))
             continue
         # Split on \n so each linebreak produces a w:br element.
         parts = chunk.split("\n")
@@ -130,6 +189,8 @@ def add_runs(paragraph, text: str, base: dict | None = None) -> None:
                     run.bold = True
                 if merged.get("italic"):
                     run.italic = True
+                if merged.get("underline"):
+                    run.underline = True
                 if merged.get("mono"):
                     run.font.name = MONO_FONT
                     run.font.size = Pt(9)
