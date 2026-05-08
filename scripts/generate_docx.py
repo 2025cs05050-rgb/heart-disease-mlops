@@ -35,6 +35,7 @@ from report_content import (  # noqa: E402
     section_ci_cd,
     section_conclusion,
     section_containerization,
+    section_deliverables,
     section_eda,
     section_executive_summary,
     section_kubernetes,
@@ -43,12 +44,14 @@ from report_content import (  # noqa: E402
     section_monitoring,
     section_pipeline,
     section_problem,
+    section_production_deployment_intro,
     section_repo,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 METRICS = json.loads((ROOT / "reports" / "metrics.json").read_text())
 FIGS = ROOT / "reports" / "figures"
+SHOTS = ROOT / "screenshots"
 OUT = ROOT / "reports" / "MLOps_Assignment1_Report.docx"
 
 PRIMARY = RGBColor(0x1F, 0x4E, 0x79)
@@ -395,11 +398,42 @@ def build() -> Path:
               "Figure 5 — Pre-provisioned Grafana dashboard ML › Heart "
               "Disease API: stat row, request rate, latency percentiles, "
               "class balance and HTTP status codes.", width_cm=16)
+    doc.add_page_break()
+
+    render(doc, section_production_deployment_intro(styles, helpers))
+    shots = [
+        ("01_cluster_context.png",
+         "Figure 6 — kubectl get nodes showing the two-node cluster "
+         "(controlplane + node01) both Ready."),
+        ("02_docker_image.png",
+         "Figure 7 — docker images heart-disease-api: image produced "
+         "by the multi-stage build."),
+        ("03_pods_running.png",
+         "Figure 8 — kubectl -n heart-disease get pods -o wide: both "
+         "replicas 1/1 Running across the two nodes."),
+        ("04_deployment_describe.png",
+         "Figure 9 — kubectl describe deployment: RollingUpdate "
+         "strategy, 2/2 available, probes wired."),
+        ("05_service_nodeport.png",
+         "Figure 10 — kubectl get svc: NodePort service exposed for "
+         "external traffic."),
+        ("06_hpa.png",
+         "Figure 11 — kubectl get hpa: active HPA (2-5 replicas, "
+         "70 % CPU target) with live metrics."),
+        ("07_curl_health_predict.png",
+         "Figure 12 — Live curl calls: /health and /predict returning "
+         "valid JSON."),
+    ]
+    for filename, caption in shots:
+        add_image(doc, SHOTS / filename, caption, width_cm=15)
+    doc.add_page_break()
+
     render(doc, section_architecture(styles, helpers))
     doc.add_page_break()
 
     render(doc, section_conclusion(styles, helpers, METRICS))
     render(doc, section_appendix(styles, helpers))
+    render(doc, section_deliverables(styles, helpers))
 
     doc.save(str(OUT))
     return OUT

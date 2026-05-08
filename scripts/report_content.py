@@ -36,7 +36,14 @@ def cover_block(styles, helpers):
         _p(helpers, styles,
            "<b>Dataset:</b> UCI Heart Disease (Cleveland processed)",
            "subtitle"),
-        _spacer(helpers, 60),
+        _p(helpers, styles,
+           "<b>Student ID:</b> 2025cs05050-rgb",
+           "subtitle"),
+        _p(helpers, styles,
+           "<b>Repository:</b> "
+           "https://github.com/2025cs05050-rgb/heart-disease-mlops",
+           "subtitle"),
+        _spacer(helpers, 50),
         _p(helpers, styles,
            f"Date: {helpers['today']}", "subtitle"),
         _spacer(helpers, 30),
@@ -45,7 +52,9 @@ def cover_block(styles, helpers):
            "operational characteristics of an end-to-end ML pipeline "
            "covering data acquisition, model development, experiment "
            "tracking, CI/CD, containerisation, Kubernetes deployment, and "
-           "production monitoring.</i>", "body"),
+           "production monitoring. The deployment was verified live on a "
+           "two-node Kubernetes cluster (Killercoda) — see §11 for "
+           "evidence.</i>", "body"),
     ]
 
 
@@ -416,11 +425,11 @@ def section_monitoring(styles, helpers):
     ]
 
 
-# --------------------------------------------------- 12. conclusion
+# --------------------------------------------------- 13. conclusion
 def section_conclusion(styles, helpers, metrics):
     test = metrics["test_metrics"]
     return [
-        _p(helpers, styles, "12. Conclusion & Future Work", "h1"),
+        _p(helpers, styles, "13. Conclusion & Future Work", "h1"),
         _p(helpers, styles,
            "The pipeline meets every functional requirement of the "
            "assignment brief and ships with the operational guard-rails "
@@ -433,16 +442,14 @@ def section_conclusion(styles, helpers, metrics):
            f"recall = {test['test_recall']:.3f} — clinically reasonable "
            "given the dataset size."),
         _p(helpers, styles,
-           "<i>Note on figures 3-5:</i> The MLflow, Swagger and Grafana "
-           "screenshots embedded in §7, §9 and §11 are programmatically "
-           "rendered (matplotlib) reproductions of the actual UIs, "
-           "produced by <code>scripts/generate_screenshots.py</code>. They "
-           "use real metrics from <code>reports/metrics.json</code> where "
-           "applicable; the Grafana time-series uses synthetic but "
-           "plausible traffic to mirror the panel layout defined in "
+           "<i>Note on figures:</i> Figures 3-5 (MLflow, Swagger, Grafana) "
+           "are programmatically rendered reproductions of the respective "
+           "UIs, produced by <code>scripts/generate_screenshots.py</code> "
+           "from real metrics in <code>reports/metrics.json</code> and the "
+           "panel layout in "
            "<code>monitoring/grafana/dashboards/heart-disease-api.json</code>. "
-           "Replace the PNGs at the same paths with live screenshots once "
-           "you have the stack running."),
+           "Figures 6-12 in §12 are <b>genuine screenshots</b> captured "
+           "from the live two-node Kubernetes cluster on Killercoda."),
         _p(helpers, styles, "Suggested next steps", "h2"),
         *_bullets(helpers, styles, [
             "<b>Model registry:</b> promote the MLflow model to a "
@@ -460,10 +467,10 @@ def section_conclusion(styles, helpers, metrics):
     ]
 
 
-# --------------------------------------------------- 13. architecture
+# --------------------------------------------------- 14. architecture
 def section_architecture(styles, helpers):
     return [
-        _p(helpers, styles, "13. End-to-End Architecture", "h1"),
+        _p(helpers, styles, "14. End-to-End Architecture", "h1"),
         _p(helpers, styles,
            "The diagram below summarises how the components fit together "
            "across the development, CI, and runtime planes."),
@@ -575,3 +582,116 @@ def section_appendix(styles, helpers):
         ]),
     ]
 
+
+# --------------------------------------- production deployment (Killercoda)
+def section_production_deployment_intro(styles, helpers):
+    return [
+        _p(helpers, styles,
+           "12. Production Deployment Verification (Killercoda)", "h1"),
+        _p(helpers, styles,
+           "The full stack was deployed to a live two-node Kubernetes "
+           "cluster on Killercoda's playground environment to verify the "
+           "manifests end-to-end outside the local Minikube loop. The "
+           "image was built with the slim multi-stage Dockerfile "
+           "(<code>docker/Dockerfile.slim</code>) and side-loaded into "
+           "containerd on both nodes via "
+           "<code>ctr -n=k8s.io images import</code>. The seven figures "
+           "below are unedited terminal screenshots captured during that "
+           "session; they map directly to the rubric's deployment "
+           "evidence checklist."),
+        _p(helpers, styles, "Verification checklist", "h2"),
+        *_bullets(helpers, styles, [
+            "<b>Cluster context (Fig 6):</b> two <i>Ready</i> nodes "
+            "(<code>controlplane</code> + <code>node01</code>) and the "
+            "active kubeconfig context.",
+            "<b>Image build (Fig 7):</b> <code>heart-disease-api:latest</code> "
+            "produced by the multi-stage build, ~400 MB.",
+            "<b>Pods running (Fig 8):</b> both replicas <code>1/1 Running</code>, "
+            "scheduled across the two nodes (proves multi-node scheduling "
+            "and image availability on every worker).",
+            "<b>Deployment description (Fig 9):</b> "
+            "<code>RollingUpdate</code> strategy, "
+            "<code>2 desired / 2 updated / 2 available</code>, liveness "
+            "and readiness probes wired to <code>/health</code>.",
+            "<b>NodePort service (Fig 10):</b> external "
+            "<code>NodePort</code> exposed for traffic ingress; companion "
+            "<i>ClusterIP</i> service used by Prometheus for in-cluster "
+            "scraping.",
+            "<b>HorizontalPodAutoscaler (Fig 11):</b> active HPA "
+            "(2-5 replicas, 70 % CPU target) with metrics-server reporting "
+            "real utilisation values rather than <code>&lt;unknown&gt;</code>.",
+            "<b>Live API call (Fig 12):</b> "
+            "<code>curl /health</code> returns "
+            "<code>{\"status\":\"ok\"}</code> and "
+            "<code>curl -X POST /predict</code> returns a valid JSON "
+            "prediction with <code>label</code>, <code>probability</code> "
+            "and <code>model_version</code>.",
+        ]),
+    ]
+
+
+# --------------------------------------- deliverables index
+def section_deliverables(styles, helpers):
+    return [
+        _p(helpers, styles, "Appendix D — Deliverables Index", "h1"),
+        _p(helpers, styles,
+           "All artefacts referenced in this report are tracked in the "
+           "public GitHub repository:"),
+        _p(helpers, styles,
+           "<b>Repository:</b> "
+           "https://github.com/2025cs05050-rgb/heart-disease-mlops"),
+        _p(helpers, styles, "Notebooks (with exported PDFs)", "h2"),
+        *_bullets(helpers, styles, [
+            "<code>notebooks/01_eda.ipynb</code> — "
+            "<i>Exploratory_Data_Analysis.pdf</i>",
+            "<code>notebooks/02_preprocessing.ipynb</code> — "
+            "<i>Preprocessing.pdf</i>",
+            "<code>notebooks/03_model_training.ipynb</code> — "
+            "<i>Model_Training.pdf</i>",
+            "<code>notebooks/04_inference.ipynb</code> — "
+            "<i>Inference.pdf</i>",
+            "<code>notebooks/05_containerisation.ipynb</code> — "
+            "<i>Containerisation.pdf</i>",
+            "<code>notebooks/06_kubernetes.ipynb</code> — "
+            "<i>Kubernetes.pdf</i>",
+            "<code>notebooks/07_monitoring.ipynb</code> — "
+            "<i>Monitoring.pdf</i>",
+        ]),
+        _p(helpers, styles, "Source code", "h2"),
+        *_bullets(helpers, styles, [
+            "<code>src/data_loader.py</code>, "
+            "<code>src/preprocess.py</code>, "
+            "<code>src/train.py</code>, "
+            "<code>src/evaluate.py</code>, "
+            "<code>src/predict.py</code> — pipeline modules.",
+            "<code>api/</code> — FastAPI service "
+            "(app, schemas, logging, metrics).",
+            "<code>tests/</code> — pytest suite (35 tests).",
+        ]),
+        _p(helpers, styles, "Infrastructure", "h2"),
+        *_bullets(helpers, styles, [
+            "<code>docker/Dockerfile</code> — multi-stage build that "
+            "bakes the trained model.",
+            "<code>docker/Dockerfile.slim</code> — runtime-only variant "
+            "used for low-IO sandboxes (Killercoda).",
+            "<code>k8s/</code> — namespace, configmap, deployment, "
+            "service, ingress, HPA, kustomization.",
+            "<code>monitoring/</code> — docker-compose, Prometheus "
+            "config, Grafana dashboard JSON.",
+            "<code>.github/workflows/ci.yml</code> — lint, test, "
+            "smoke-train and Docker-build jobs.",
+        ]),
+        _p(helpers, styles, "Reports", "h2"),
+        *_bullets(helpers, styles, [
+            "<code>reports/MLOps_Assignment1_Report.pdf</code> — "
+            "this consolidated report (PDF).",
+            "<code>reports/MLOps_Assignment1_Report.docx</code> — "
+            "Word version of this report.",
+            "<code>reports/metrics.json</code> — CV + test metrics for "
+            "both candidate models, consumed by the report generators.",
+            "<code>reports/figures/</code> — confusion matrix, ROC "
+            "curve, MLflow / Swagger / Grafana renderings.",
+            "<code>screenshots/</code> — seven Killercoda deployment "
+            "screenshots embedded as Figures 6-12.",
+        ]),
+    ]

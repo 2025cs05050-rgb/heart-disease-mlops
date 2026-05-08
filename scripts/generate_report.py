@@ -112,6 +112,7 @@ def build() -> Path:
         styles=styles,
         metrics=METRICS,
         figures_dir=ROOT / "reports" / "figures",
+        screenshots_dir=ROOT / "screenshots",
         helpers={
             "Paragraph": Paragraph,
             "Spacer": Spacer,

@@ -14,6 +14,7 @@ from report_content import (
     section_ci_cd,
     section_conclusion,
     section_containerization,
+    section_deliverables,
     section_eda,
     section_executive_summary,
     section_kubernetes,
@@ -22,6 +23,7 @@ from report_content import (
     section_monitoring,
     section_pipeline,
     section_problem,
+    section_production_deployment_intro,
     section_repo,
 )
 
@@ -78,7 +80,8 @@ def _image(helpers: dict, path: Path, width_cm: float, caption: str,
 
 
 def build_sections(*, styles: dict, metrics: dict, figures_dir: Path,
-                   helpers: dict) -> list:
+                   helpers: dict,
+                   screenshots_dir: Path | None = None) -> list:
     """Compose the full Platypus story (list of flowables)."""
     story: list = []
 
@@ -130,18 +133,51 @@ def build_sections(*, styles: dict, metrics: dict, figures_dir: Path,
     story += section_kubernetes(styles, helpers)
     story.append(helpers["PageBreak"]())
 
-    # ---- 6. Monitoring + Architecture ----
+    # ---- 6. Monitoring ----
     story += section_monitoring(styles, helpers)
     story += image_fn(figures_dir / "screenshot_grafana.png", 16,
                       "Figure 5 — Pre-provisioned Grafana dashboard "
                       "<i>ML › Heart Disease API</i>: stat row, request "
                       "rate, latency percentiles, class balance and HTTP "
                       "status codes.")
+    story.append(helpers["PageBreak"]())
+
+    # ---- 7. Production deployment evidence (Killercoda screenshots) ----
+    story += section_production_deployment_intro(styles, helpers)
+    if screenshots_dir is not None:
+        shots = [
+            ("01_cluster_context.png",
+             "Figure 6 — <code>kubectl get nodes</code> showing the "
+             "two-node cluster (controlplane + node01) both <i>Ready</i>."),
+            ("02_docker_image.png",
+             "Figure 7 — <code>docker images heart-disease-api</code>: "
+             "image produced by the multi-stage build."),
+            ("03_pods_running.png",
+             "Figure 8 — <code>kubectl -n heart-disease get pods -o wide</code>: "
+             "both replicas <code>1/1 Running</code> across the two nodes."),
+            ("04_deployment_describe.png",
+             "Figure 9 — <code>kubectl describe deployment</code>: "
+             "RollingUpdate strategy, 2/2 available, probes wired."),
+            ("05_service_nodeport.png",
+             "Figure 10 — <code>kubectl get svc</code>: NodePort service "
+             "exposed for external traffic."),
+            ("06_hpa.png",
+             "Figure 11 — <code>kubectl get hpa</code>: active HPA "
+             "(2-5 replicas, 70 % CPU target) with live metrics."),
+            ("07_curl_health_predict.png",
+             "Figure 12 — Live <code>curl</code> calls: <code>/health</code> "
+             "and <code>/predict</code> returning valid JSON."),
+        ]
+        for filename, caption in shots:
+            story += image_fn(screenshots_dir / filename, 15, caption)
+    story.append(helpers["PageBreak"]())
+
+    # ---- 8. Architecture + Conclusion + Appendix ----
     story += section_architecture(styles, helpers)
     story.append(helpers["PageBreak"]())
 
-    # ---- 7. Conclusion + Appendix ----
     story += section_conclusion(styles, helpers, metrics)
     story += section_appendix(styles, helpers)
+    story += section_deliverables(styles, helpers)
 
     return story
