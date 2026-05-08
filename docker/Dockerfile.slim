@@ -1,0 +1,75 @@
+# syntax=docker/dockerfile:1.7
+# ----------------------------------------------------------------------
+# Slim multi-stage build optimised for low-IO sandboxes (Killercoda etc.)
+#
+# Differences vs docker/Dockerfile:
+#   * Builder installs the FULL requirements (so training runs) but we
+#     ONLY copy the trained model.pkl into the runtime stage — not the
+#     ~600 MB site-packages dir. The slow `COPY` + `chown` of thousands
+#     of jupyter/mlflow files is eliminated.
+#   * Runtime installs only requirements-runtime.txt (~150 MB). The
+#     resulting image is roughly half the size and builds in 2-3 min
+#     even on slow disks.
+# ----------------------------------------------------------------------
+
+ARG PYTHON_VERSION=3.11
+
+# ====== builder ======
+FROM python:${PYTHON_VERSION}-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+
+# Full deps so training works (mlflow, matplotlib, seaborn, etc.)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src ./src
+COPY scripts ./scripts
+COPY api ./api
+
+# Fetch dataset and train; the only artefact we keep is models/model.pkl
+RUN python scripts/download_data.py && \
+    python -m src.train
+
+# ====== runtime ======
+FROM python:${PYTHON_VERSION}-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MODEL_PATH=/app/models/model.pkl \
+    MODEL_VERSION=v1.0.0 \
+    PORT=8000
+
+RUN groupadd --system app && \
+    useradd --system --create-home --gid app appuser
+
+WORKDIR /app
+
+# Install ONLY the runtime deps as root, system-wide (no per-user copy needed)
+COPY requirements-runtime.txt .
+RUN pip install --no-cache-dir -r requirements-runtime.txt && \
+    rm requirements-runtime.txt
+
+# Copy source + the trained artefact (small files only)
+COPY --from=builder /build/src ./src
+COPY --from=builder /build/api ./api
+COPY --from=builder /build/models ./models
+
+# Cheap chown: only /app (a few KB), NOT site-packages
+RUN chown -R appuser:app /app
+
+USER appuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request,sys; \
+sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)" \
+    || exit 1
+
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]

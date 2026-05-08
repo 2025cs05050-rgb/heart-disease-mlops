@@ -1,0 +1,17 @@
+# Minimal runtime deps for the API container.
+# Excludes jupyter, mlflow, ruff, pytest, reporting libs (kept in requirements.txt for dev).
+
+# --- Core ML (model load + predict) ---
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+joblib>=1.3
+
+# --- API ---
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+
+# --- Monitoring ---
+prometheus-client>=0.20
+prometheus-fastapi-instrumentator>=7.0
